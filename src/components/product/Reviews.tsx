@@ -163,7 +163,7 @@ export function Reviews({
 
       <div className="mt-10 space-y-8">
         {reviews.length === 0 ? (
-          <p className="text-ink-soft">No reviews yet — be the first to review this product.</p>
+          <p className="text-ink-soft">Be the first to share a detailed review of this product.</p>
         ) : (
           reviews.map((r) => (
             <div key={r.id} className="border-b border-line pb-8">
