@@ -15,6 +15,10 @@ import {
   getCategoryBySlug,
 } from "@/lib/data";
 
+// Re-fetch from Supabase at most every 5 minutes so catalog edits go live
+// without a redeploy. New product slugs render on-demand (dynamicParams).
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   const products = await getProducts();
   return products.map((p) => ({ slug: p.slug }));

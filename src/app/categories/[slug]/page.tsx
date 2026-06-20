@@ -9,6 +9,9 @@ import {
   getProductsByCategory,
 } from "@/lib/data";
 
+// Refresh category pages from Supabase at most every 5 minutes.
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   const categories = await getCategories();
   return categories.map((c) => ({ slug: c.slug }));
