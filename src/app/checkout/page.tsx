@@ -8,6 +8,7 @@ import { Container } from "@/components/ui/Container";
 import { Button } from "@/components/ui/Button";
 import { useCart } from "@/lib/cart/store";
 import { useHydrated } from "@/lib/useHydrated";
+import { validateCoupon } from "@/lib/coupons";
 import { formatPrice } from "@/lib/utils";
 
 type Form = {
@@ -53,9 +54,14 @@ export default function CheckoutPage() {
   const [form, setForm] = useState<Form>(empty);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [couponInput, setCouponInput] = useState("");
+  const [coupon, setCoupon] = useState<{ code: string; discount: number; label: string } | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
   const hydrated = useHydrated();
 
   const total = subtotal();
+  const discount = coupon?.discount ?? 0;
+  const payable = Math.max(0, total - discount);
 
   useEffect(() => {
     if (hydrated && items.length === 0 && !loading) {
@@ -67,6 +73,17 @@ export default function CheckoutPage() {
 
   function update(key: keyof Form, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function applyCoupon() {
+    setCouponError(null);
+    const result = validateCoupon(couponInput, total);
+    if (result.ok) {
+      setCoupon({ code: result.code, discount: result.discount, label: result.label });
+    } else {
+      setCoupon(null);
+      setCouponError(result.message);
+    }
   }
 
   function valid(): boolean {
@@ -89,7 +106,14 @@ export default function CheckoutPage() {
     const res = await fetch("/api/razorpay/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...payment, customer: form, items, amount: total }),
+      body: JSON.stringify({
+        ...payment,
+        customer: form,
+        items,
+        amount: payable,
+        couponCode: coupon?.code,
+        discount,
+      }),
     });
     const data = await res.json();
     if (data.verified) {
@@ -112,7 +136,7 @@ export default function CheckoutPage() {
     const orderRes = await fetch("/api/razorpay/order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: total }),
+      body: JSON.stringify({ amount: payable }),
     });
     const order = await orderRes.json();
 
@@ -253,11 +277,55 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-          <dl className="mt-6 space-y-2 border-t border-line pt-5 text-sm">
+          {/* Coupon */}
+          <div className="mt-6 border-t border-line pt-5">
+            {coupon ? (
+              <div className="flex items-center justify-between rounded-xl bg-success/10 px-4 py-3 text-sm">
+                <span className="font-medium text-success">
+                  {coupon.code} applied — {coupon.label}
+                </span>
+                <button
+                  onClick={() => {
+                    setCoupon(null);
+                    setCouponInput("");
+                  }}
+                  className="text-muted hover:text-ink"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value)}
+                    placeholder="Promo code"
+                    className="h-11 flex-1 rounded-xl border border-line bg-canvas px-4 text-sm uppercase outline-none focus:border-ink"
+                  />
+                  <Button variant="outline" onClick={applyCoupon}>
+                    Apply
+                  </Button>
+                </div>
+                {couponError && (
+                  <p className="mt-2 text-xs text-accent-deep">{couponError}</p>
+                )}
+                <p className="mt-2 text-xs text-muted">Try WELCOME10 for 10% off.</p>
+              </div>
+            )}
+          </div>
+
+          <dl className="mt-5 space-y-2 border-t border-line pt-5 text-sm">
             <div className="flex justify-between">
               <dt className="text-ink-soft">Subtotal</dt>
               <dd>{formatPrice(total)}</dd>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-success">
+                <dt>Discount ({coupon?.code})</dt>
+                <dd>−{formatPrice(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between">
               <dt className="text-ink-soft">Shipping</dt>
               <dd className="text-success">Free</dd>
@@ -265,7 +333,7 @@ export default function CheckoutPage() {
           </dl>
           <div className="mt-4 flex justify-between border-t border-line pt-4">
             <span className="font-medium">Total</span>
-            <span className="font-display text-2xl">{formatPrice(total)}</span>
+            <span className="font-display text-2xl">{formatPrice(payable)}</span>
           </div>
 
           {error && (
@@ -281,7 +349,7 @@ export default function CheckoutPage() {
             disabled={loading}
           >
             <Lock className="h-4 w-4" />
-            {loading ? "Processing…" : `Pay ${formatPrice(total)}`}
+            {loading ? "Processing…" : `Pay ${formatPrice(payable)}`}
           </Button>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
             <ShieldCheck className="h-4 w-4" /> Secured by Razorpay · UPI, cards & more

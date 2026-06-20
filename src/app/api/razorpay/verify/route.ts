@@ -20,6 +20,8 @@ type Body = {
   customer: Customer;
   items: CartItem[];
   amount: number;
+  couponCode?: string;
+  discount?: number;
 };
 
 function orderNumber() {
@@ -34,27 +36,43 @@ async function persistOrder(
   const supabase = getServiceClient();
   if (!supabase) return number;
 
-  const { data, error } = await supabase
+  const baseRow = {
+    order_number: number,
+    customer_name: body.customer.name,
+    email: body.customer.email,
+    phone: body.customer.phone,
+    shipping_address: {
+      address: body.customer.address,
+      city: body.customer.city,
+      state: body.customer.state,
+      pincode: body.customer.pincode,
+    },
+    amount: body.amount,
+    currency: "INR",
+    status,
+    razorpay_order_id: body.razorpay_order_id,
+    razorpay_payment_id: body.razorpay_payment_id,
+  };
+
+  // Include coupon fields when present; retry without them if the columns
+  // don't exist yet (migration 0003 not applied).
+  const withCoupon = body.couponCode
+    ? { ...baseRow, coupon_code: body.couponCode, discount: body.discount ?? 0 }
+    : baseRow;
+
+  let { data, error } = await supabase
     .from("orders")
-    .insert({
-      order_number: number,
-      customer_name: body.customer.name,
-      email: body.customer.email,
-      phone: body.customer.phone,
-      shipping_address: {
-        address: body.customer.address,
-        city: body.customer.city,
-        state: body.customer.state,
-        pincode: body.customer.pincode,
-      },
-      amount: body.amount,
-      currency: "INR",
-      status,
-      razorpay_order_id: body.razorpay_order_id,
-      razorpay_payment_id: body.razorpay_payment_id,
-    })
+    .insert(withCoupon)
     .select("id")
     .single();
+
+  if (error && body.couponCode) {
+    ({ data, error } = await supabase
+      .from("orders")
+      .insert(baseRow)
+      .select("id")
+      .single());
+  }
 
   if (error || !data) {
     console.error("Supabase order insert failed", error);

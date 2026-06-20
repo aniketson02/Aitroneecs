@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { CartDrawer } from "@/components/cart/CartDrawer";
+import { WhatsAppButton } from "@/components/layout/WhatsAppButton";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -57,6 +58,7 @@ export default function RootLayout({
         <main className="flex-1">{children}</main>
         <Footer />
         <CartDrawer />
+        <WhatsAppButton />
       </body>
     </html>
   );

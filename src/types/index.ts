@@ -40,6 +40,15 @@ export type Product = {
   options?: ProductOption[];
 };
 
+export type Review = {
+  id: string;
+  author: string;
+  rating: number;
+  title: string;
+  body: string;
+  date: string;
+};
+
 export type CartItem = {
   id: string;
   slug: string;

@@ -1,7 +1,8 @@
 import "server-only";
-import type { Category, Product } from "@/types";
+import type { Category, Product, Review } from "@/types";
 import { products as seedProducts } from "@/data/products";
 import { categories as seedCategories } from "@/data/categories";
+import { seedReviews } from "@/data/reviews";
 import { getPublicClient, isSupabaseConfigured } from "@/lib/supabase/server";
 
 /**
@@ -105,6 +106,30 @@ export async function getFeaturedProducts(limit = 4): Promise<Product[]> {
 export async function getProductsByCategory(slug: string): Promise<Product[]> {
   const all = await getProducts();
   return all.filter((p) => p.categorySlug === slug);
+}
+
+export async function getReviews(productId: string): Promise<Review[]> {
+  if (isSupabaseConfigured) {
+    const supabase = getPublicClient();
+    const { data, error } = await supabase!
+      .from("reviews")
+      .select("id, author_name, rating, title, body, created_at")
+      .eq("product_id", productId)
+      .eq("status", "approved")
+      .order("created_at", { ascending: false });
+    if (!error && data && data.length > 0) {
+      return data.map((r) => ({
+        id: String(r.id),
+        author: r.author_name,
+        rating: r.rating,
+        title: r.title,
+        body: r.body,
+        date: r.created_at,
+      }));
+    }
+    // No rows yet (or table missing) → fall through to seed.
+  }
+  return seedReviews[productId] ?? [];
 }
 
 export async function getRelatedProducts(

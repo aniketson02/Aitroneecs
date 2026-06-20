@@ -8,11 +8,13 @@ import { Stars } from "@/components/ui/Stars";
 import { Gallery } from "@/components/product/Gallery";
 import { ProductPurchase } from "@/components/product/ProductPurchase";
 import { ProductGrid } from "@/components/product/ProductGrid";
+import { Reviews } from "@/components/product/Reviews";
 import {
   getProductBySlug,
   getProducts,
   getRelatedProducts,
   getCategoryBySlug,
+  getReviews,
 } from "@/lib/data";
 
 // Re-fetch from Supabase at most every 5 minutes so catalog edits go live
@@ -52,9 +54,10 @@ export default async function ProductPage({
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [category, related] = await Promise.all([
+  const [category, related, reviews] = await Promise.all([
     getCategoryBySlug(product.categorySlug),
     getRelatedProducts(product),
+    getReviews(product.id),
   ]);
 
   const jsonLd = {
@@ -120,12 +123,19 @@ export default async function ProductPage({
             </h1>
             <p className="mt-3 text-lg text-ink-soft">{product.tagline}</p>
 
-            <div className="mt-5 flex items-center gap-4">
-              <Stars rating={product.rating} reviews={product.reviews} />
-              {product.stock > 0 ? (
-                <span className="text-sm text-success">In stock</span>
-              ) : (
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <a href="#reviews" className="transition-opacity hover:opacity-70">
+                <Stars rating={product.rating} reviews={product.reviews} />
+              </a>
+              {product.stock <= 0 ? (
                 <span className="text-sm text-muted">Out of stock</span>
+              ) : product.stock <= 25 ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-accent/10 px-3 py-1 text-sm font-medium text-accent-deep">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-deep" />
+                  Only {product.stock} left — order soon
+                </span>
+              ) : (
+                <span className="text-sm text-success">In stock</span>
               )}
             </div>
 
@@ -174,6 +184,13 @@ export default async function ProductPage({
             ))}
           </dl>
         </div>
+
+        <Reviews
+          productId={product.id}
+          rating={product.rating}
+          reviewCount={product.reviews}
+          initial={reviews}
+        />
 
         {related.length > 0 && (
           <section className="mt-24">
