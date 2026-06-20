@@ -75,7 +75,8 @@ create index if not exists idx_order_items_order on order_items (order_id);
 -- View consumed by the storefront data layer
 -- ============================================================
 
-create or replace view products_with_images as
+create or replace view products_with_images
+with (security_invoker = true) as
 select
   p.id,
   p.slug,
@@ -127,10 +128,9 @@ create policy "public read product_images"  on product_images  for select using 
 -- Storage bucket for product imagery
 -- ============================================================
 
+-- A public bucket already serves object URLs (used by next/image) without any
+-- storage.objects SELECT policy, so we deliberately add none — that avoids
+-- exposing a "list all files" capability to clients.
 insert into storage.buckets (id, name, public)
 values ('product-images', 'product-images', true)
 on conflict (id) do nothing;
-
-create policy "public read product images bucket"
-  on storage.objects for select
-  using (bucket_id = 'product-images');
