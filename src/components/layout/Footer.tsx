@@ -54,17 +54,39 @@ export async function Footer() {
           <div>
             <p className="eyebrow text-accent">Support</p>
             <ul className="mt-4 space-y-2.5 text-sm text-canvas/70">
-              <li>Free shipping in India</li>
-              <li>2-year warranty</li>
-              <li>30-day returns</li>
-              <li>Secure Razorpay checkout</li>
+              <li>
+                <Link href="/shipping" className="hover:text-canvas">
+                  Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/refund" className="hover:text-canvas">
+                  Returns &amp; Refunds
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-canvas">
+                  Terms &amp; Conditions
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-canvas">
+                  Privacy Policy
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-14 flex flex-col items-center justify-between gap-4 border-t border-canvas/10 pt-8 text-xs text-canvas/50 sm:flex-row">
+        <div className="mt-14 flex flex-col items-center gap-4 border-t border-canvas/10 pt-8 text-xs text-canvas/50 lg:flex-row lg:justify-between">
           <p>© {new Date().getFullYear()} Aitroneecs. All rights reserved.</p>
-          <p>Crafted in India · Payments secured by Razorpay</p>
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+            <Link href="/terms" className="hover:text-canvas">Terms</Link>
+            <Link href="/privacy" className="hover:text-canvas">Privacy</Link>
+            <Link href="/refund" className="hover:text-canvas">Refunds</Link>
+            <Link href="/shipping" className="hover:text-canvas">Shipping</Link>
+          </nav>
+          <p>Crafted in India · Secured by Razorpay</p>
         </div>
       </Container>
     </footer>
